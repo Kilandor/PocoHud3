@@ -2021,7 +2021,7 @@ function TPocoHud3:_hook()
 			return Run('send_to_peer',...)
 		end)
 		hook( UnitNetworkHandler, 'damage_bullet', function( ... )
-			local self,subject_unit, attacker_unit, damage, i_body, height_offset, death, sender = unpack{...}
+			local self,subject_unit, attacker_unit, damage, i_body, height_offset, variant, death, sender = unpack{...}
 			local head = i_body and alive(subject_unit) and subject_unit:character_damage().is_head and subject_unit:character_damage():is_head(subject_unit:body(i_body))
 			if not (damage == 1 and i_body == 1 and height_offset == 1) then -- Filter Drama event
 				me:AddDmgPopByUnit(attacker_unit,subject_unit,height_offset,damage*-0.1953125,death,head,'bullet')
@@ -2029,7 +2029,7 @@ function TPocoHud3:_hook()
 			return Run('damage_bullet',...)
 		end)
 		hook( UnitNetworkHandler, 'damage_explosion_fire', function(...)
-			local self, subject_unit, attacker_unit, damage, i_attack_variant, death, direction, sender = unpack{...}
+			local self, subject_unit, attacker_unit, damage, i_attack_variant, death, direction, weapon_unit, sender = unpack{...}
 
 			local realAttacker = attacker_unit
 			if realAttacker and alive(realAttacker) and realAttacker:base() and realAttacker:base()._thrower_unit then
@@ -2040,7 +2040,7 @@ function TPocoHud3:_hook()
 			return Run('damage_explosion_fire', ... )
 		end)
 		hook( UnitNetworkHandler, 'damage_dot', function(...)
-			local self, subject_unit, attacker_unit, damage, death, variant, hurt_animation, sender = unpack{...}
+			local self, subject_unit, attacker_unit, damage, death, variant, hurt_animation, weapon_id, sender = unpack{...}
 
 			local realAttacker = attacker_unit
 			if realAttacker and alive(realAttacker) and realAttacker:base() and realAttacker:base()._thrower_unit then
@@ -2051,7 +2051,7 @@ function TPocoHud3:_hook()
 			return Run('damage_dot', ... )
 		end)
 		hook( UnitNetworkHandler, 'damage_fire', function(...)
-			local self, subject_unit, attacker_unit, damage, start_dot_dance_animation, death, direction, weapon_type, weapon_unit, sender = unpack{...}
+			local self, subject_unit, attacker_unit, damage, start_dot_dance_antimation, death, direction, weapon_type, weapon_unit, healed, sender = unpack{...}
 
 			local realAttacker = attacker_unit
 			if realAttacker and alive(realAttacker) and realAttacker:base() and realAttacker:base()._thrower_unit then
@@ -2081,7 +2081,7 @@ function TPocoHud3:_hook()
 					if alive(realAttacker) and realAttacker:base() and realAttacker:base()._thrower_unit then
 						realAttacker = realAttacker:base()._thrower_unit
 					end
-					me:AddDmgPop(realAttacker,hitPos,self._unit,0,info.damage,self._dead,head,info.variant)
+					me:AddDmgPop(realAttacker,hitPos,self._unit,0,info.damage,info.result.type=="death",head,info.variant)
 				end
 			end
 			return result
