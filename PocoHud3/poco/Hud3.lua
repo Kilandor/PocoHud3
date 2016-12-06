@@ -5,8 +5,8 @@ feel free to ask me through my mail: zenyr(at)zenyr.com. But please understand t
 ]]
 -- Note: Due to quirky PreCommit hook, revision number would *appear to* be 1 revision before than "released" luac files.
 local _ = UNDERSCORE
-local REV = 395
-local TAG = '0.33'
+local REV = 467 -- git shortlog | wc -l
+local TAG = '0.35' -- git describe --tags
 local inGame = CopDamage ~= nil
 local inGameDeep
 local me
@@ -155,7 +155,7 @@ function TPocoHud3:AddDmgPop(sender,hitPos,unit,offset,damage,death,head,dmgType
 	if self.dead then return end
 	local pid = self:_pid(sender)
 
-	local isPercent = damage<0
+	local isPercent = damage < 0
 	local dmgTime = Opt.damageDecay
 	local rDamage = damage>=0 and damage or -damage
 	if isPercent and unit and unit:character_damage() and unit:character_damage()._HEALTH_INIT then
@@ -2021,7 +2021,7 @@ function TPocoHud3:_hook()
 			return Run('send_to_peer',...)
 		end)
 		hook( UnitNetworkHandler, 'damage_bullet', function( ... )
-			local self,subject_unit, attacker_unit, damage, i_body, height_offset, death, sender = unpack{...}
+			local self, subject_unit, attacker_unit, damage, i_body, height_offset, variant, death, sender = unpack{...}
 			local head = i_body and alive(subject_unit) and subject_unit:character_damage().is_head and subject_unit:character_damage():is_head(subject_unit:body(i_body))
 			if not (damage == 1 and i_body == 1 and height_offset == 1) then -- Filter Drama event
 				me:AddDmgPopByUnit(attacker_unit,subject_unit,height_offset,damage*-0.1953125,death,head,'bullet')
@@ -2029,7 +2029,7 @@ function TPocoHud3:_hook()
 			return Run('damage_bullet',...)
 		end)
 		hook( UnitNetworkHandler, 'damage_explosion_fire', function(...)
-			local self, subject_unit, attacker_unit, damage, i_attack_variant, death, direction, sender = unpack{...}
+			local self, subject_unit, attacker_unit, damage, i_attack_variant, death, direction, weapon_unit, sender = unpack{...}
 
 			local realAttacker = attacker_unit
 			if realAttacker and alive(realAttacker) and realAttacker:base() and realAttacker:base()._thrower_unit then
@@ -2040,7 +2040,7 @@ function TPocoHud3:_hook()
 			return Run('damage_explosion_fire', ... )
 		end)
 		hook( UnitNetworkHandler, 'damage_dot', function(...)
-			local self, subject_unit, attacker_unit, damage, death, variant, hurt_animation, sender = unpack{...}
+			local self, subject_unit, attacker_unit, damage, death, variant, hurt_animation, weapon_id, sender = unpack{...}
 
 			local realAttacker = attacker_unit
 			if realAttacker and alive(realAttacker) and realAttacker:base() and realAttacker:base()._thrower_unit then
@@ -2051,8 +2051,7 @@ function TPocoHud3:_hook()
 			return Run('damage_dot', ... )
 		end)
 		hook( UnitNetworkHandler, 'damage_fire', function(...)
-			local self, subject_unit, attacker_unit, damage, start_dot_dance_animation, death, direction, weapon_type, weapon_unit, sender = unpack{...}
-
+			local self, subject_unit, attacker_unit, damage, start_dot_dance_antimation, death, direction, weapon_type, weapon_unit, healed, sender = unpack{...}
 			local realAttacker = attacker_unit
 			if realAttacker and alive(realAttacker) and realAttacker:base() and realAttacker:base()._thrower_unit then
 				realAttacker = realAttacker:base()._thrower_unit
@@ -2069,8 +2068,8 @@ function TPocoHud3:_hook()
 		end)
 
 		--CopDamage
-		hook( CopDamage, '_on_damage_received', function(self,info)
-			local result = Run('_on_damage_received',self,info)
+		hook( CopDamage, '_on_damage_received', function(self,info,...)
+			local result = Run('_on_damage_received',self,info,...)
 			local hitPos = Vector3()
 			if info.col_ray or info.variant == 'poison' then
 				local col_ray = info.col_ray or {}
@@ -2235,7 +2234,7 @@ function TPocoHud3:_hook()
 			end
 			if pid then
 				local bPercent = me:Stat(pid,'health')
-				local percent = (pid==me.pid and data.current/data.total or data.current)*100 or 0
+				local percent = (data.current / data.total) * 100 or 0
 				if percent ~= 0 and bPercent == 0 then
 					me:Stat(pid,'custody',0)
 					me:Stat(pid,'_refreshBtm',1) -- Refresh btm when out of custody
@@ -2810,10 +2809,15 @@ function TPocoHud3:_hook()
 			if O('game','gridCrimenet') then
 				local self = unpack{...}
 				local newDots = {}
-				local xx,yy = 10,10
+				local xx,yy = 12,10
 				for i=1,xx do -- 224~1666 1442
 					for j=1,yy do -- 165~945 780
-						table.insert(newDots,{ 100+1642*i/xx, 100+680*(i % 2 == 0 and j or j - 0.5)/yy })
+						local newX = 100+ 1642*i/xx
+						local newY = 100+ 680*(i % 2 == 0 and j or j - 0.5)/yy
+						if  (i >= 3) or ( j < 7 ) then
+							-- avoiding fixed points
+							table.insert(newDots,{ newX, newY })
+						end
 					end
 				end
 				self._locations[1][1].dots = newDots
@@ -2824,7 +2828,7 @@ function TPocoHud3:_hook()
 			if O('game','sortCrimenet') then
 				local self,data = unpack{...}
 				local diff = (data and data.difficulty_id or 2) - 2
-				local diffX = 1800 / 10 * (diff * 2) + 200
+				local diffX = 236 + ( 1700 / 7 ) * diff
 				local locations = self:_get_contact_locations()
 				local sorted = {}
 				for k,dot in pairs(locations[1].dots) do
